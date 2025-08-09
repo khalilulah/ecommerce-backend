@@ -1,10 +1,10 @@
 import express from "express";
 import dotenv from "dotenv";
 import { connectDb } from "./lib/db.js";
-import authroute from "../ecommerce-backend/routes/auth.route.js";
-import productRoute from "../ecommerce-backend/routes/product.route.js";
-import cartRoute from "../ecommerce-backend/routes/cart.route.js";
-import paymentRoute from "../ecommerce-backend/routes/payment.route.js";
+import authroute from "./routes/auth.route.js";
+import productRoute from "./routes/product.route.js";
+import cartRoute from "./routes/cart.route.js";
+import paymentRoute from "./routes/payment.route.js";
 
 dotenv.config();
 // app.use(cors());
