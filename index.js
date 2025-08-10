@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import { connectDb } from "./lib/db.js";
 import authroute from "./routes/auth.route.js";
 import productRoute from "./routes/product.route.js";
@@ -11,6 +12,7 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.use("/api/auth", authroute);
 app.use("/api/products", productRoute);
