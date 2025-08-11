@@ -28,6 +28,10 @@ export const addToCart = async (req, res) => {
     const { productId } = req.body;
     const user = await User.findById(req.user._id);
 
+    if (!req.user) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
     const existingItem = user.cartItems.find(
       (item) => item.product.toString() === productId
     );
