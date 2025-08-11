@@ -32,12 +32,14 @@ export const addToCart = async (req, res) => {
       return res.status(401).json({ message: "user not found" });
     }
 
+    console.log(productId);
+
     if (!req.user) {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
     const existingItem = user.cartItems.find(
-      (item) => item.product.toString() === productId
+      (item) => item.product.toString() === productId.toString()
     );
 
     if (existingItem) {
