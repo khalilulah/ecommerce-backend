@@ -47,7 +47,13 @@ export const addToCart = async (req, res) => {
       return res.status(401).json({ message: "user not found" });
     }
     console.log("User found:", user.name);
-    const existingItem = user.cartItems.find(
+
+    // FIX: Filter out invalid cart items and check for undefined products
+    const validCartItems = user.cartItems.filter(
+      (item) => item.product != null
+    );
+
+    const existingItem = validCartItems.find(
       (item) => item.product.toString() === productId.toString()
     );
 
@@ -58,7 +64,7 @@ export const addToCart = async (req, res) => {
       user.cartItems.push({ product: productId, quantity: 1 });
       console.log("Added new item to cart");
     }
-
+    user.cartItems = user.cartItems.filter((item) => item.product != null);
     await user.save();
     console.log("User saved successfully");
 
