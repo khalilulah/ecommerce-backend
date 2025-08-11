@@ -2,14 +2,18 @@ import Product from "../models/product.model.js";
 
 export const getCartProducts = async (req, res) => {
   try {
-    const product = await Product.find({ id: { $in: req.user.cartItems } });
+    //get the id of each product in the cartItems
+    const productIds = req.user.cartItems.map((item) => item.id);
+
+    //find the product in the "Product" database using the id gotten above
+    const products = await Product.find({ _id: { $in: productIds } }).lean();
 
     // add the quantity for each product
-    const cartItems = product.map((product) => {
+    const cartItems = products.map((product) => {
       const item = req.user.cartItems.find(
-        (cartItem) => cartItem.id === product.id
+        (cartItem) => cartItem.id.toString() === product._id.toString()
       );
-      return { ...product.toJSON(), quantity: item.quantity };
+      return { ...product, quantity: item.quantity };
     });
 
     res.status(201).json(cartItems);
@@ -23,12 +27,14 @@ export const addToCart = async (req, res) => {
     const { productId } = req.body;
     const user = req.user;
 
-    const existingItem = user.cartItems.find((item) => item.id === productId);
+    const existingItem = user.cartItems.find(
+      (item) => item.id.toString() === productId
+    );
 
     if (existingItem) {
       existingItem.quantity += 1;
     } else {
-      user.cartItems.push(productId);
+      user.cartItems.push({ id: productId, quantity: 1 });
     }
 
     await user.save();
