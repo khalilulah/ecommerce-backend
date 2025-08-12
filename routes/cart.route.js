@@ -2,6 +2,7 @@ import { Router } from "express";
 import { protect } from "../middlewares/auth.middleware.js";
 import {
   addToCart,
+  clearCart,
   decrementQuantity,
   getCartProducts,
   incrementQuantity,
@@ -13,6 +14,7 @@ const router = Router();
 
 router.get("/", protect, getCartProducts);
 router.delete("/:id", protect, removeAllFromCart);
+router.delete("/", protect, clearCart);
 router.patch("/:id", protect, updateQuantity);
 router.post("/", protect, addToCart);
 router.patch("/:id/increment", protect, incrementQuantity);

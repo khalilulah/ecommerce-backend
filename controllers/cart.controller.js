@@ -71,17 +71,31 @@ export const removeAllFromCart = async (req, res) => {
   try {
     const { productId } = req.body;
     const user = req.user;
+    let totalAmount = 0;
 
     if (productId) {
       user.cartItems = user.cartItems.filter(
         (item) => item.product.toString() !== productId.toString()
       );
     } else {
-      return user.cartItems;
+      // If no productId provided, clear entire cart
+      user.cartItems = [];
     }
 
     await user.save();
-    res.status(200).json(user.cartItems);
+
+    // Calculate total amount for remaining items in cart
+    for (let cartItem of user.cartItems) {
+      const itemProduct = await Product.findById(cartItem.product);
+      if (itemProduct) {
+        totalAmount += Math.round(itemProduct.price * cartItem.quantity);
+      }
+    }
+
+    res.status(200).json({
+      cartItems: user.cartItems,
+      totalAmount: totalAmount,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -121,6 +135,13 @@ export const incrementQuantity = async (req, res) => {
   try {
     const { id: productId } = req.params;
     const user = req.user;
+    let singleTotalAmount = 0;
+    let totalAmount = 0;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     const existingItem = user.cartItems.find(
       (item) => item.product.toString() === productId.toString()
@@ -129,9 +150,26 @@ export const incrementQuantity = async (req, res) => {
     if (existingItem) {
       existingItem.quantity += 1;
       await user.save();
-      res.status(200).json(user.cartItems);
+
+      // Calculate the total amount for this specific product
+      const amount = Math.round(product.price);
+      singleTotalAmount = amount * existingItem.quantity; // Use existingItem.quantity, not product.quantity
+
+      // Calculate total for all products in cart
+      for (let cartItem of user.cartItems) {
+        const itemProduct = await Product.findById(cartItem.product);
+        if (itemProduct) {
+          totalAmount += Math.round(itemProduct.price * cartItem.quantity);
+        }
+      }
+
+      res.status(200).json({
+        cartItems: user.cartItems,
+        singleTotalAmount: singleTotalAmount,
+        totalAmount: totalAmount,
+      });
     } else {
-      res.status(404).json({ message: "product not found" });
+      res.status(404).json({ message: "Product not found in cart" });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -142,25 +180,75 @@ export const decrementQuantity = async (req, res) => {
   try {
     const { id: productId } = req.params;
     const user = req.user;
+    let singleTotalAmount = 0;
+    let totalAmount = 0;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     const existingItem = user.cartItems.find(
       (item) => item.product.toString() === productId.toString()
     );
 
     if (existingItem) {
+      let currentQuantity = 0; // Track the current quantity
+
       if (existingItem.quantity > 1) {
         existingItem.quantity -= 1;
+        currentQuantity = existingItem.quantity;
       } else {
         // Remove item if quantity becomes 0
         user.cartItems = user.cartItems.filter(
           (item) => item.product.toString() !== productId.toString()
         );
+        currentQuantity = 0; // Item was removed, so quantity is 0
       }
+
       await user.save();
-      res.status(200).json(user.cartItems);
+
+      // Calculate the total amount for this specific product
+      const amount = Math.round(product.price);
+      singleTotalAmount = amount * currentQuantity; // Use currentQuantity instead
+
+      // Calculate total for all products in cart
+      for (let cartItem of user.cartItems) {
+        const itemProduct = await Product.findById(cartItem.product);
+        if (itemProduct) {
+          totalAmount += Math.round(itemProduct.price * cartItem.quantity);
+        }
+      }
+
+      res.status(200).json({
+        cartItems: user.cartItems,
+        singleTotalAmount: singleTotalAmount,
+        totalAmount: totalAmount,
+      });
     } else {
-      res.status(404).json({ message: "product not found" });
+      res.status(404).json({ message: "Product not found in cart" });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const clearCart = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.cartItems = [];
+    await user.save();
+
+    res.status(200).json({
+      message: "Cart cleared successfully",
+      cartItems: user.cartItems,
+      totalAmount: 0, // Added for consistency with other cart functions
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
