@@ -73,7 +73,9 @@ export const removeAllFromCart = async (req, res) => {
     const user = req.user;
 
     if (productId) {
-      user.cartItems = user.cartItems.filter((item) => item.id !== productId);
+      user.cartItems = user.cartItems.filter(
+        (item) => item.product.toString() !== productId.toString()
+      );
     } else {
       return user.cartItems;
     }
@@ -91,15 +93,69 @@ export const updateQuantity = async (req, res) => {
     const { quantity } = req.body;
     const user = req.user;
 
-    const existingItem = user.cartItems.find((item) => (item.id = productId));
+    const existingItem = user.cartItems.find(
+      (item) => item.product.toString() === productId.toString()
+    );
     if (existingItem) {
       if (quantity === 0) {
-        user.cartItems = user.cartItems.filter((item) => item.id != productId);
+        user.cartItems = user.cartItems.filter(
+          (item) => item.product.toString() !== productId.toString()
+        );
 
         await user.save();
         return res.status(200).json(user.cartItems);
       }
       existingItem.quantity = quantity;
+      await user.save();
+      res.status(200).json(user.cartItems);
+    } else {
+      res.status(404).json({ message: "product not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADD: New functions for increment/decrement
+export const incrementQuantity = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const user = req.user;
+
+    const existingItem = user.cartItems.find(
+      (item) => item.product.toString() === productId.toString()
+    );
+
+    if (existingItem) {
+      existingItem.quantity += 1;
+      await user.save();
+      res.status(200).json(user.cartItems);
+    } else {
+      res.status(404).json({ message: "product not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const decrementQuantity = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const user = req.user;
+
+    const existingItem = user.cartItems.find(
+      (item) => item.product.toString() === productId.toString()
+    );
+
+    if (existingItem) {
+      if (existingItem.quantity > 1) {
+        existingItem.quantity -= 1;
+      } else {
+        // Remove item if quantity becomes 0
+        user.cartItems = user.cartItems.filter(
+          (item) => item.product.toString() !== productId.toString()
+        );
+      }
       await user.save();
       res.status(200).json(user.cartItems);
     } else {
