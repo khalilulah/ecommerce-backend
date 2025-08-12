@@ -6,9 +6,13 @@ dotenv.config();
 
 export const createCheckoutSession = async (req, res) => {
   try {
+    console.log("Route hit - createCheckoutSession"); // ADD THIS
+    console.log("Request body:", req.body); // ADD THIS
+    console.log("User:", req.user ? "User exists" : "No user"); // ADD THIS
     const { products } = req.body;
 
     if (!Array.isArray(products) || products.length === 0) {
+      console.log("Empty products array"); // ADD THIS
       return res.status(400).json({ message: "empty product array" });
     }
 
