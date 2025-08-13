@@ -81,3 +81,56 @@ export const createCheckoutSuccess = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const createPaymentSheet = async (req, res) => {
+  try {
+    const { products } = req.body;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: "empty product array" });
+    }
+
+    // Calculate total amount (same logic as your existing function)
+    let totalAmount = 0;
+    products.forEach((product) => {
+      const amount = Math.round(product.price * 100);
+      totalAmount += amount * product.quantity;
+    });
+
+    // Create customer
+    const customer = await stripe.customers.create();
+
+    // Create ephemeral key
+    const ephemeralKey = await stripe.ephemeralKeys.create(
+      { customer: customer.id },
+      { apiVersion: "2025-07-30.basil" }
+    );
+
+    // Create PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalAmount,
+      currency: "usd",
+      customer: customer.id,
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        userId: req.user._id.toString(),
+        products: JSON.stringify(
+          products.map((p) => ({
+            id: p._id,
+            quantity: p.quantity,
+            price: p.price,
+          }))
+        ),
+      },
+    });
+
+    res.status(200).json({
+      paymentIntent: paymentIntent.client_secret,
+      ephemeralKey: ephemeralKey.secret,
+      customer: customer.id,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

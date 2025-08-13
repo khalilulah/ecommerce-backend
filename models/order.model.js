@@ -35,6 +35,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+    stripePaymentIntentId: {
+      type: String,
+      sparse: true, // Allows multiple null values
+    },
   },
   { timestamps: true }
 );
