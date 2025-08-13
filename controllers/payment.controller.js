@@ -4,7 +4,6 @@ import Order from "../models/order.model.js";
 
 dotenv.config();
 
-// Create checkout session
 export const createCheckoutSession = async (req, res) => {
   try {
     const { products } = req.body;
@@ -15,7 +14,7 @@ export const createCheckoutSession = async (req, res) => {
 
     let totalAmount = 0;
     const lineItems = products.map((product) => {
-      const amount = Math.round(product.price * 100); // cents
+      const amount = Math.round(product.price * 100); // because stripes calculates in cents
       totalAmount += amount * product.quantity;
 
       return {
@@ -27,7 +26,6 @@ export const createCheckoutSession = async (req, res) => {
           },
           unit_amount: amount,
         },
-        quantity: product.quantity || 1,
       };
     });
 
@@ -35,8 +33,8 @@ export const createCheckoutSession = async (req, res) => {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: `${process.env.BACKEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.BACKEND_URL}/payment-cancel`,
+      success_url: `${process.env.CLIENT_URL}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: ` ${process.env.CLIENT_URL}/purchase-cancel`,
       metadata: {
         userId: req.user._id.toString(),
         products: JSON.stringify(
@@ -48,51 +46,21 @@ export const createCheckoutSession = async (req, res) => {
         ),
       },
     });
-
-    res.status(200).json({
-      id: session.id,
-      totalAmount: totalAmount / 100,
-      url: session.url,
-    });
+    res.status(200).json({ id: session.id, totalAmount: totalAmount / 100 });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Success redirect endpoint
-export const paymentSuccessRedirect = async (req, res) => {
-  const sessionId = encodeURIComponent(req.query.session_id);
-  return res.redirect(`myapp://purchase-success?session_id=${sessionId}`);
-};
-
-// Verify payment from app
-export const verifyCheckoutSuccess = async (req, res) => {
+export const createCheckoutSuccess = async (req, res) => {
   try {
-    const { session_id } = req.query;
-    if (!session_id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "session_id is required" });
-    }
+    const { sessionId } = req.body;
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const session = await stripe.checkout.sessions.retrieve(session_id);
-
+    // create a new Order
     if (session.payment_status === "paid") {
       const products = JSON.parse(session.metadata.products);
-
-      const existingOrder = await Order.findOne({
-        stripeSessionId: session_id,
-      });
-      if (existingOrder) {
-        return res.status(200).json({
-          success: true,
-          message: "Order already exists.",
-          orderId: existingOrder._id,
-          paid: true,
-        });
-      }
-
-      const newOrder = new Order({
+      newOrder = new Order({
         user: session.metadata.userId,
         products: products.map((product) => ({
           product: product.id,
@@ -100,24 +68,16 @@ export const verifyCheckoutSuccess = async (req, res) => {
           price: product.price,
         })),
         totalAmount: session.amount_total / 100,
-        stripeSessionId: session_id,
+        stripeSessionId: sessionId,
       });
-
       await newOrder.save();
-
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Payment successful, order created.",
         orderId: newOrder._id,
-        paid: true,
       });
     }
-
-    res
-      .status(200)
-      .json({ success: false, message: "Payment not completed.", paid: false });
   } catch (error) {
-    console.error("Payment verification error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
