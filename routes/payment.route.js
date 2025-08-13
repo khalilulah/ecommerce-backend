@@ -2,29 +2,19 @@ import { Router } from "express";
 import { protect } from "../middlewares/auth.middleware.js";
 import {
   createCheckoutSession,
-  createCheckoutSuccess,
+  paymentSuccessRedirect,
+  verifyCheckoutSuccess,
 } from "../controllers/payment.controller.js";
 
 const router = Router();
 
-router.post(
-  "/create-checkout-session",
-  (req, res, next) => {
-    console.log("Route hit before middleware");
-    console.log("Authorization header:", req.headers.authorization);
-    next();
-  },
-  protect,
-  (req, res, next) => {
-    console.log(
-      "After protect middleware - user:",
-      req.user ? "exists" : "missing"
-    );
-    next();
-  },
-  createCheckoutSession
-);
+// Start checkout
+router.post("/create-checkout-session", protect, createCheckoutSession);
 
-router.post("/create-checkout-success", protect, createCheckoutSuccess);
+// Stripe success redirect → app
+router.get("/payment-success", paymentSuccessRedirect);
+
+// App calls this to verify payment
+router.get("/verify-checkout-success", protect, verifyCheckoutSuccess);
 
 export default router;
