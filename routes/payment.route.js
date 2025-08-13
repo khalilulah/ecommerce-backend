@@ -12,6 +12,6 @@ const router = Router();
 router.post("/create-checkout-session", protect, createCheckoutSession);
 
 router.get("/checkout-success", protect, createCheckoutSuccess);
-router.post("/payment-sheet", protectRoute, createPaymentSheet);
+router.post("/payment-sheet", protect, createPaymentSheet);
 
 export default router;
