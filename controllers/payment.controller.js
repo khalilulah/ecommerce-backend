@@ -6,13 +6,9 @@ dotenv.config();
 
 export const createCheckoutSession = async (req, res) => {
   try {
-    console.log("Route hit - createCheckoutSession"); // ADD THIS
-    console.log("Request body:", req.body); // ADD THIS
-    console.log("User:", req.user ? "User exists" : "No user"); // ADD THIS
     const { products } = req.body;
 
     if (!Array.isArray(products) || products.length === 0) {
-      console.log("Empty products array"); // ADD THIS
       return res.status(400).json({ message: "empty product array" });
     }
 
@@ -30,20 +26,16 @@ export const createCheckoutSession = async (req, res) => {
           },
           unit_amount: amount,
         },
-        quantity: product.quantity,
+        quantity: product.quantity || 1,
       };
     });
-    console.log(
-      "Stripe key exists:",
-      process.env.STRIPE_SECRET_KEY ? "Yes" : "No"
-    );
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: `${process.env.CLIENT_URL}/purchase-success?session_id={CHECKOUT_SESSION_ID}}`,
-      cancel_url: `${process.env.CLIENT_URL}/purchase-cancel`,
+      success_url: `${process.env.CLIENT_URL}purchase-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}purchase-cancel`,
       metadata: {
         userId: req.user._id.toString(),
         products: JSON.stringify(
@@ -55,7 +47,11 @@ export const createCheckoutSession = async (req, res) => {
         ),
       },
     });
-    res.status(200).json({ id: session.id, totalAmount: totalAmount / 100 });
+    res.status(200).json({
+      id: session.id,
+      totalAmount: totalAmount / 100,
+      url: session.url,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
