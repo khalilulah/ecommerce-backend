@@ -43,14 +43,38 @@ export const getAllProducts = async (req, res) => {
 
 export const getFeaturedProducts = async (req, res) => {
   try {
-    // .lean() returns a plain javascript object instead of a mongodb document
-    const featuredProducts = await Product.find({ isFeatured: true }).lean();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
 
-    if (!featuredProducts) {
-      res.status(404).json({ message: "featured product not found" });
+    // Get total count of featured products for pagination
+    const totalCount = await Product.countDocuments({ isFeatured: true });
+
+    // .lean() returns a plain javascript object instead of a mongodb document
+    const featuredProducts = await Product.find({ isFeatured: true })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    if (totalCount === 0) {
+      return res.status(404).json({
+        message: "No featured products found",
+        currentPage: page,
+        totalCount,
+        totalPages: 0,
+        featuredProducts: [],
+      });
     }
 
-    res.status(200).json({ featuredProducts, message: "success" });
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.status(200).json({
+      currentPage: page,
+      totalPages,
+      featuredProducts,
+      message: "success",
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
