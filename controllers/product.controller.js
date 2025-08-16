@@ -46,12 +46,17 @@ export const getFeaturedProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 6;
     const skip = (page - 1) * limit;
+    const category = req.query.category;
 
+    const query = { isFeatured: true };
+    if (category && category !== "All") {
+      query.category = category;
+    }
     // Get total count of featured products for pagination
-    const totalCount = await Product.countDocuments({ isFeatured: true });
+    const totalCount = await Product.countDocuments(query);
 
     // .lean() returns a plain javascript object instead of a mongodb document
-    const featuredProducts = await Product.find({ isFeatured: true })
+    const featuredProducts = await Product.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -159,11 +164,11 @@ export const deleteProduct = async (req, res) => {
         console.error("Cloudinary delete error:", deleteError);
       }
     }
-    const deletedBook = await Book.findByIdAndDelete(productId);
-    if (!deletedBook) {
+    const deletedProduct = await Product.findByIdAndDelete(productId);
+    if (!deletedProduct) {
       return res
         .status(401)
-        .json({ message: "unable to delete, book not found" });
+        .json({ message: "unable to delete, product not found" });
     }
     res.status(200).json({ message: "deleted" });
   } catch (error) {
