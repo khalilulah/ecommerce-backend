@@ -175,3 +175,38 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate if ID is a valid MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        message: "Invalid product ID format",
+      });
+    }
+
+    const product = await Product.findById(id).lean();
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json({
+      product,
+      message: "Product retrieved successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching product by ID:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Add this route to your product routes file
+//

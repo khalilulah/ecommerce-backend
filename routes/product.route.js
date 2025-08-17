@@ -6,6 +6,7 @@ import {
   getAllProducts,
   getFeaturedProducts,
   getProductByCategory,
+  getProductById,
   getRecomendedProducts,
   toggleFeaturedProduct,
 } from "../controllers/product.controller.js";
@@ -20,5 +21,5 @@ router.get("/recomendations", getRecomendedProducts);
 router.get("/", protect, adminRoute, getAllProducts);
 router.patch("/:id", protect, adminRoute, toggleFeaturedProduct);
 router.delete("/:id", protect, adminRoute, deleteProduct);
-
+router.get("/:id", protect, getProductById);
 export default router;
