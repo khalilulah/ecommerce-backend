@@ -12,7 +12,7 @@ export const protect = async (req, res, next) => {
     console.log("Extracted token:", token ? "Present" : "Missing");
     if (!token) {
       console.log("ERROR: No token provided");
-      return res.status(400).json({ message: "provide a token" });
+      return res.status(401).json({ message: "provide a token" });
     }
 
     console.log("Verifying token...");
@@ -22,7 +22,7 @@ export const protect = async (req, res, next) => {
     console.log("Token decoded successfully, userId:", decode.userId);
     if (!decode) {
       console.log("ERROR: Token decode failed");
-      return res.status(400).json({ message: "invalid token" });
+      return res.status(401).json({ message: "invalid token" });
     }
 
     console.log("Finding user with ID:", decode.userId);
@@ -31,13 +31,22 @@ export const protect = async (req, res, next) => {
 
     if (!getUser) {
       console.log("ERROR: User not found in database");
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "User not found" });
     }
     req.user = getUser;
     console.log("=== PROTECT MIDDLEWARE SUCCESS ===");
     next();
   } catch (error) {
     console.error("=== PROTECT MIDDLEWARE ERROR ===");
+    console.error("Error:", error.message);
+
+    // ✅ Handle JWT specific errors
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expired" });
+    }
     console.error("Error:", error.message);
     console.error("Full error:", error);
     res.status(500).json({ message: error.message });
