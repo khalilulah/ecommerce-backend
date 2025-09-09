@@ -167,14 +167,6 @@ export const incrementQuantity = async (req, res) => {
       const amount = Math.round(product.price);
       singleTotalAmount = amount * existingItem.quantity; // Use existingItem.quantity, not product.quantity
 
-      // // Calculate total for all products in cart
-      // for (let cartItem of user.cartItems) {
-      //   const itemProduct = await Product.findById(cartItem.product);
-      //   if (itemProduct) {
-      //     totalAmount += Math.round(itemProduct.price * cartItem.quantity);
-      //   }
-      // }
-
       res.status(200).json({
         cartItems: user.cartItems,
         singleTotalAmount: singleTotalAmount,

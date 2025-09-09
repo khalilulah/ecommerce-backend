@@ -7,13 +7,13 @@ dotenv.config();
 
 export const signup = async (req, res) => {
   try {
-    const { email, name, password, role } = req.body;
+    const { email, username, password, role } = req.body;
 
     //check if user already exist
     const existingUser = await User.findOne({ email });
 
     //make sure no field return a falsy value
-    if (!name || !email || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({ message: "fill all fields" });
     }
 
@@ -23,7 +23,7 @@ export const signup = async (req, res) => {
     }
 
     //create new user
-    const newUser = await User.create({ name, email, password, role });
+    const newUser = await User.create({ username, email, password, role });
 
     // create token
     const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
